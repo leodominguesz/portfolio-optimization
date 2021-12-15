@@ -1,21 +1,23 @@
 
-#----Pacote e carregamento dos dados
+
+#%%Packages
 using JuMP, GLPK, DataFrames, XLSX, CSV, Ipopt
 
-
+#%% Data
 df = XLSX.readdata("G:/Meu Drive/Investimentos.xlsx", "Investimentos", "C1:M16")
 df = DataFrame(Any[@view df[2:end, i] for i in 1:size(df, 2)], Symbol.(df[1, :]))
 
-select!(df, Not([:Qnt,:PM,:Variacao,:Diff_Inv,:Atual,:Investido]))
-# names(df)
-#----Variáveis
-investido = df.Real
-ideal = df.Ideal
+#Removing some columns
+select!(df, Not([:Amount,:Average_price,:Range,:Diff,:Actual_value,:Invested]))
+
+#%% Variables
+investido = df.Profitable_investment
+ideal = df.Ideal_allocation
 conj_ativos = collect(1:(size(df)[1])) # qnt. de atributos
 valor_aporte = 1000 #EM DÓLARES
 vender = false
 
-#----Otimização
+#%% Optimization
 clearconsole()
 function OPT_problem(investido,ideal,conj_ativos,valor_aporte, vender)
     @eval begin
@@ -58,18 +60,19 @@ end
 end
 OPT_problem(investido,ideal,conj_ativos,valor_aporte, vender)
 
-print("\nFunção objetivo: ", fo, "\n")
-print("Vender: ", vender, "\n")
-print("Aporte: \$ ", valor_aporte, "\n\n")
+#%%Results
+print("\nObjective function: ", fo, "\n")
+print("To sell: ", vender, "\n")
+print("Investment: \$ ", valor_aporte, "\n\n")
 
-insertcols!(df, size(df)[2]+1, :Aporte => round.(aportee, digits = 3))
+insertcols!(df, size(df)[2]+1, :Investment => round.(aportee, digits = 3))
 
-df.Fatia = round.(new_fracc; digits = 3)
-df.Diff_Fatia = round.(df.Ideal - df.Fatia, digits = 3)
-insertcols!(df, 3, :Investido => round.(df.Real + df.Aporte, digits = 3))
-# df.Real = round.(df.Real + df.Aporte, digits = 3)
-# insertcols!(df, 8, :Diff_New => round.(df.Ideal - df.Fatia, digits = 3))
+df.Allocation = round.(new_fracc; digits = 3)
+df.Diff_Allocation = round.(df.Ideal_allocation - df.Allocation, digits = 3)
+insertcols!(df, 3, :Invested => round.(df.Profitable_investment + df.Investment, digits = 3))
+# df.Profitable_investment = round.(df.Profitable_investment + df.Investment, digits = 3)
+# insertcols!(df, 8, :Diff_New => round.(df.Ideal_allocation - df.Allocation, digits = 3))
 print(df)
 
-print("\nAporte: ",sum(df.Aporte))
-print("\nDólares Investidos: ",sum(df.Investido))
+print("\Investment: ",sum(df.Investment))
+print("\nInvested dollars: ",sum(df.Invested))
